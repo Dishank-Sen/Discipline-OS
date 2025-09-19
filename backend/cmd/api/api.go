@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/Dishank-Sen/Discipline-OS/internal/gmailer"
 	"github.com/Dishank-Sen/Discipline-OS/service/routes"
 	"github.com/Dishank-Sen/Discipline-OS/service/store"
 	"github.com/gorilla/mux"
@@ -14,12 +15,14 @@ import (
 type APIServer struct{
 	addr string
 	client *mongo.Client
+	gmailClient *gmailer.GmailClient
 }
 
-func NewAPIServer(addr string, client *mongo.Client) *APIServer{
+func NewAPIServer(addr string, client *mongo.Client, gmailClient *gmailer.GmailClient) *APIServer{
 	return &APIServer{
 		addr: addr,
 		client: client,
+		gmailClient: gmailClient,
 	}
 }
 
@@ -32,8 +35,9 @@ func (s *APIServer) Run() error{
 	tempUserCollection_name := os.Getenv("TEMP_USER_COLLECTION")
 	userCollection := s.client.Database(db_name).Collection(userCollection_name)
 	tempUserCollection := s.client.Database(db_name).Collection(tempUserCollection_name)
-	userStore := store.NewStore(s.client, userCollection, tempUserCollection)
-	handler := routes.NewHandler(userStore)
+
+	userStore := store.NewStore(s.client, s.gmailClient)
+	handler := routes.NewHandler(userStore, userCollection, tempUserCollection)
 	handler.RegisterRoutes(subRouter)
 
 	log.Printf("server running on port %s",s.addr)

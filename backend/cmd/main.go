@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
 	"github.com/Dishank-Sen/Discipline-OS/cmd/api"
 	"github.com/Dishank-Sen/Discipline-OS/db/connect"
+	"github.com/Dishank-Sen/Discipline-OS/internal/gmailer"
 	errorhandler "github.com/Dishank-Sen/Discipline-OS/utils/errorHandler"
 	"github.com/joho/godotenv"
 )
@@ -33,8 +35,18 @@ func main(){
 	errorhandler.HandleError(err, "Pinging MongoDB")
 	fmt.Println("Connected to MongoDB")
 	
+	// new gmail client
+	credentials := "./assets/credentials.json"
+	tokenFile := "./assets/credentials-gmail.json"
+	templateDir := "./internal/templates"
 
-	server := api.NewAPIServer(port, client)
+	gmailClient, err := gmailer.NewGmailClient(credentials, tokenFile, templateDir)
+	if err != nil {
+		log.Fatalf("Failed to create Gmail client: %v", err)
+	}
+
+
+	server := api.NewAPIServer(port, client, gmailClient)
 	err = server.Run()
 	errorhandler.HandleError(err, "Failed to start server")
 }
